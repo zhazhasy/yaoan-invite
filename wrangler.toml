@@ -1,0 +1,8 @@
+name = "yaoan-invite"
+compatibility_date = "2026-05-30"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "yaoan-invite-db"
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+
