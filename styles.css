@@ -129,9 +129,9 @@ html, body {
 
 .map-jump-btn {
   position: absolute;
-  right: 9.8%;
-  top: 38.1%;
-  width: 22%;
+  right: 16.8%;
+  top: 60.0%;
+  width: 18.2%;
   aspect-ratio: 1 / 1;
   display: block;
   border-radius: 50%;
@@ -147,9 +147,6 @@ html, body {
   outline-offset: 2px;
 }
 
-.map-jump-btn-new {
-  z-index: 7;
-}
 
 .invite-page .map-card {
   position: absolute;
@@ -305,5 +302,11 @@ details p {
   }
   .hero .invite-card h3 { font-size: 28px; }
 }
+
+
+
+
+
+`n
 
 
