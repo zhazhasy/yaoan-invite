@@ -74,6 +74,15 @@ html, body {
   height: auto;
 }
 
+.signing-address {
+  margin: 0;
+  padding: 12px 14px 16px;
+  line-height: 1.6;
+  font-size: 15px;
+  color: #1d4333;
+  background: #f7fcf9;
+}
+
 .go-there-btn {
   position: absolute;
   right: 14px;
@@ -111,6 +120,21 @@ html, body {
 
 .invite-media {
   position: relative;
+}
+
+.map-jump-btn {
+  position: absolute;
+  right: 11%;
+  top: 38.7%;
+  width: 20%;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  z-index: 6;
+}
+
+.map-jump-btn:focus-visible {
+  outline: 3px solid rgba(46, 92, 224, 0.9);
+  outline-offset: 2px;
 }
 
 .invite-page .map-card {
