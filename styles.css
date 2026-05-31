@@ -147,6 +147,10 @@ html, body {
   outline-offset: 2px;
 }
 
+.map-jump-btn-new {
+  z-index: 7;
+}
+
 .invite-page .map-card {
   position: absolute;
   left: 50%;
@@ -301,4 +305,5 @@ details p {
   }
   .hero .invite-card h3 { font-size: 28px; }
 }
+
 
