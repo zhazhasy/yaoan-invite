@@ -100,18 +100,22 @@
   </main>
 
   <script>
+    document.documentElement.classList.add('js');
     const SUBMIT_API = '/api/appointments';
-
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          const anim = entry.target.dataset.anim;
-          entry.target.classList.add('visible', anim);
-        }
-      });
-    }, { threshold: 0.25 });
-
-    document.querySelectorAll('.page').forEach((page) => observer.observe(page));
+    const pages = document.querySelectorAll('.page');
+    if ('IntersectionObserver' in window) {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const anim = entry.target.dataset.anim;
+            entry.target.classList.add('visible', anim);
+          }
+        });
+      }, { threshold: 0.25 });
+      pages.forEach((page) => observer.observe(page));
+    } else {
+      pages.forEach((page) => page.classList.add('visible', page.dataset.anim || ''));
+    }
 
     const form = document.getElementById('appointmentForm');
     const tip = document.getElementById('formTip');

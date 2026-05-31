@@ -30,9 +30,14 @@ html, body {
   overflow: hidden;
   background: #fff;
   box-shadow: 0 10px 26px rgba(15, 90, 63, 0.12);
+  opacity: 1;
+  transform: none;
+  transition: all 0.7s ease;
+}
+
+.js .page {
   opacity: 0;
   transform: translateY(24px);
-  transition: all 0.7s ease;
 }
 
 .page.visible { opacity: 1; transform: translateY(0); }
@@ -124,12 +129,17 @@ html, body {
 
 .map-jump-btn {
   position: absolute;
-  right: 11%;
-  top: 38.7%;
-  width: 20%;
+  right: 9.8%;
+  top: 38.1%;
+  width: 22%;
   aspect-ratio: 1 / 1;
+  display: block;
   border-radius: 50%;
   z-index: 6;
+  cursor: pointer;
+  background: transparent;
+  -webkit-tap-highlight-color: rgba(46, 92, 224, 0.25);
+  pointer-events: auto;
 }
 
 .map-jump-btn:focus-visible {
