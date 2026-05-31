@@ -9,12 +9,9 @@
 </head>
 <body>
   <main class="deck" id="top">
-    <section class="page hero" data-anim="zoom-in">
-      <img src="首页.jpg" alt="首页" class="full-image" fetchpriority="high" decoding="async" />
-      <a class="invite-card" href="#main-content" aria-label="进入邀请函正文">
-        <h3>签约邀请函</h3>
-      </a>
-    </section>
+  <section class="page hero" data-anim="zoom-in">
+    <img src="首页.jpg" alt="首页" class="full-image" fetchpriority="high" decoding="async" />
+  </section>
 
     <section class="page" id="main-content" data-anim="slide-up">
       <h2>公司介绍</h2>
@@ -96,9 +93,10 @@
       <form class="invite-form" id="appointmentForm">
         <label>单位名称<input type="text" name="company" placeholder="请输入单位名称" required /></label>
         <label>联系人姓名<input type="text" name="contactName" placeholder="请输入姓名" required /></label>
+        <label>职务<input type="text" name="position" placeholder="请输入职务" required /></label>
         <label>联系电话<input type="tel" name="phone" placeholder="请输入电话" required /></label>
         <label>预约人数<input type="number" name="attendees" min="1" placeholder="请输入人数" required /></label>
-        <label>备注信息<textarea rows="4" name="note" placeholder="如：到场时间、接待需求"></textarea></label>
+        <label>备注信息<textarea rows="4" name="note" placeholder="如：带队人员与随行人员信息"></textarea></label>
         <button type="submit">提交预约</button>
         <p class="form-tip" id="formTip"></p>
       </form>

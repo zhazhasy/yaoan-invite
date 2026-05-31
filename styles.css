@@ -123,16 +123,6 @@ html, body {
 }
 
 .hero { position: relative; }
-.hero::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 73%;
-  height: 27%;
-  background: #1e6845;
-  z-index: 1;
-}
 .hero .invite-card {
   position: absolute;
   left: 50%;
