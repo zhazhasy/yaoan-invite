@@ -38,6 +38,7 @@
           <th>提交时间</th>
           <th>单位名称</th>
           <th>联系人</th>
+          <th>职务</th>
           <th>电话</th>
           <th>人数</th>
           <th>备注</th>
@@ -77,6 +78,7 @@
             <td>${escapeHtml(new Date(item.createdAt).toLocaleString('zh-CN'))}</td>
             <td>${escapeHtml(item.company)}</td>
             <td>${escapeHtml(item.contactName)}</td>
+            <td>${escapeHtml(item.position || '')}</td>
             <td>${escapeHtml(item.phone)}</td>
             <td>${escapeHtml(item.attendees)}</td>
             <td>${escapeHtml(item.note || '')}</td>
@@ -85,7 +87,7 @@
         `).join('');
 
         if (!list.length) {
-          rowsEl.innerHTML = '<tr><td colspan="7" class="muted">暂无预约数据</td></tr>';
+          rowsEl.innerHTML = '<tr><td colspan="8" class="muted">暂无预约数据</td></tr>';
         }
 
         refreshInfo.textContent = `最近刷新：${new Date().toLocaleTimeString('zh-CN')}`;

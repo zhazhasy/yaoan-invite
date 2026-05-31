@@ -86,12 +86,13 @@ const server = http.createServer(async (req, res) => {
         createdAt: new Date().toISOString(),
         company: String(body.company || '').trim(),
         contactName: String(body.contactName || '').trim(),
+        position: String(body.position || '').trim(),
         phone: String(body.phone || '').trim(),
         attendees: Number(body.attendees || 0),
         note: String(body.note || '').trim()
       };
 
-      if (!record.company || !record.contactName || !record.phone || !record.attendees) {
+      if (!record.company || !record.contactName || !record.position || !record.phone || !record.attendees) {
         return send(res, 400, JSON.stringify({ ok: false, message: '请完整填写必填项' }));
       }
 
