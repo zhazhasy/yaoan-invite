@@ -119,6 +119,12 @@ html, body {
   filter: brightness(1.07);
 }
 
+
+.invite-page {
+  position: relative;
+  z-index: 50;
+}
+
 .invite-page h2 {
   z-index: 6;
 }
@@ -308,5 +314,6 @@ details p {
 
 
 `n
+
 
 

@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>姚安项目签约邀请函</title>
   <link rel="preload" as="image" href="首页.jpg" fetchpriority="high" />
+  <link rel="preload" as="image" href="导航诚邀.jpg" fetchpriority="high" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -71,7 +72,7 @@
     <section class="page invite-page" data-anim="zoom-out">
       <h2>诚邀</h2>
       <div class="invite-media">
-        <img src="导航诚邀.jpg" alt="诚邀" class="full-image framed" loading="lazy" decoding="async" />
+        <img src="导航诚邀.jpg" alt="诚邀" class="full-image framed" loading="eager" fetchpriority="high" decoding="sync" />
         <a
           id="mapJumpBtn"
           class="map-jump-btn"
@@ -168,6 +169,8 @@ mapJumpBtn?.addEventListener('touchend', jumpToMap);
   </script>
 </body>
 </html>
+
+
 
 
 
