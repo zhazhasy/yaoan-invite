@@ -10,9 +10,21 @@
     h1 { margin: 0 0 10px; }
     .bar { display:flex; gap:12px; align-items:center; margin-bottom:12px; }
     .tag { background:#1f7a56; color:#fff; padding:6px 10px; border-radius:999px; font-size:13px; }
-    table { width:100%; border-collapse: collapse; background:#fff; border-radius:10px; overflow:hidden; }
-    th, td { border-bottom:1px solid #e3efe8; padding:10px; text-align:left; font-size:14px; vertical-align:top; }
-    th { background:#f4fbf7; }
+    .table-wrap {
+      background: #fff;
+      border-radius: 10px;
+      overflow-x: auto;
+      box-shadow: 0 8px 22px rgba(20, 61, 45, 0.08);
+      border: 1px solid #d9e9e0;
+    }
+    table { width:100%; min-width: 1120px; border-collapse: collapse; }
+    th, td { border-bottom:1px solid #e3efe8; padding:10px; text-align:left; font-size:14px; vertical-align:middle; white-space: nowrap; }
+    th { background:#f4fbf7; position: sticky; top: 0; z-index: 1; }
+    td.note-cell {
+      white-space: normal;
+      min-width: 280px;
+      line-height: 1.5;
+    }
     .muted { color:#4c6a5b; font-size:13px; }
     .btn-del {
       border: 1px solid #d36f6f;
@@ -32,21 +44,23 @@
       <span class="tag" id="totalTag">总计：0</span>
       <span class="muted" id="refreshInfo">正在加载...</span>
     </div>
-    <table>
-      <thead>
-        <tr>
-          <th>提交时间</th>
-          <th>单位名称</th>
-          <th>联系人</th>
-          <th>职务</th>
-          <th>电话</th>
-          <th>人数</th>
-          <th>备注</th>
-          <th>操作</th>
-        </tr>
-      </thead>
-      <tbody id="rows"></tbody>
-    </table>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>提交时间</th>
+            <th>单位名称</th>
+            <th>联系人</th>
+            <th>职务</th>
+            <th>电话</th>
+            <th>人数</th>
+            <th>备注</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
   </div>
 
   <script>
@@ -81,7 +95,7 @@
             <td>${escapeHtml(item.position || '')}</td>
             <td>${escapeHtml(item.phone)}</td>
             <td>${escapeHtml(item.attendees)}</td>
-            <td>${escapeHtml(item.note || '')}</td>
+            <td class="note-cell">${escapeHtml(item.note || '')}</td>
             <td><button class="btn-del" data-id="${escapeHtml(item.id)}">删除</button></td>
           </tr>
         `).join('');
