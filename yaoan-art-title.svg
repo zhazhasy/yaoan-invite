@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" role="img" aria-labelledby="title desc">
+  <title id="title">我在姚安等你</title>
+  <desc id="desc">透明背景的自然风艺术字，搭配叶片、花瓣和山形元素。</desc>
+  <defs>
+    <linearGradient id="inkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1d5c44"/>
+      <stop offset="45%" stop-color="#357959"/>
+      <stop offset="100%" stop-color="#0f3f2d"/>
+    </linearGradient>
+    <linearGradient id="goldStroke" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#e7d5a1"/>
+      <stop offset="50%" stop-color="#cba55a"/>
+      <stop offset="100%" stop-color="#f3e7bf"/>
+    </linearGradient>
+    <linearGradient id="mountainWash" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#d7ebdf" stop-opacity="0.05"/>
+      <stop offset="50%" stop-color="#afcfbb" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#d7ebdf" stop-opacity="0.05"/>
+    </linearGradient>
+    <radialGradient id="petalGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#f6d9cb" stop-opacity="0.92"/>
+      <stop offset="100%" stop-color="#e3a38d" stop-opacity="0.3"/>
+    </radialGradient>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="5.5" flood-color="#21513c" flood-opacity="0.16"/>
+    </filter>
+    <filter id="paperInk" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="1" seed="7" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="0.7"/>
+    </filter>
+  </defs>
+
+  <g opacity="0.8">
+    <path d="M144 278c35-43 91-74 142-73 41 0 64 9 99 21 29 10 58 17 93 17 50 0 92-14 135-33 34-15 62-25 109-25 61 0 122 18 193 58 35 20 78 29 121 25" fill="none" stroke="url(#mountainWash)" stroke-width="20" stroke-linecap="round"/>
+    <path d="M170 306c43-18 82-28 117-28 27 0 58 5 94 16 28 9 58 13 90 13 58 0 103-14 154-31 39-14 79-21 122-21 60 0 118 14 182 47" fill="none" stroke="#d8e9df" stroke-opacity="0.52" stroke-width="8" stroke-linecap="round"/>
+  </g>
+
+  <g opacity="0.92">
+    <path d="M116 310c34-35 54-82 58-128" fill="none" stroke="#79a77f" stroke-width="5" stroke-linecap="round"/>
+    <path d="M160 242c-34-11-57-26-71-47" fill="none" stroke="#5d8f67" stroke-width="4" stroke-linecap="round"/>
+    <path d="M174 204c18-10 34-26 44-46" fill="none" stroke="#5d8f67" stroke-width="4" stroke-linecap="round"/>
+    <path d="M86 190c25 2 47 12 68 28-19 11-39 12-60 6-16-5-19-23-8-34z" fill="#b9d9bf" fill-opacity="0.9"/>
+    <path d="M161 156c17 4 32 14 45 31-19 6-37 4-53-7-12-8-10-22 8-24z" fill="#d2e9c9" fill-opacity="0.95"/>
+    <path d="M210 200c24-1 45 5 64 19-18 15-39 20-63 13-18-5-19-25-1-32z" fill="#c5dfbb" fill-opacity="0.9"/>
+  </g>
+
+  <g opacity="0.92">
+    <path d="M1080 312c-32-38-51-82-55-129" fill="none" stroke="#79a77f" stroke-width="5" stroke-linecap="round"/>
+    <path d="M1038 242c32-12 53-28 66-50" fill="none" stroke="#5d8f67" stroke-width="4" stroke-linecap="round"/>
+    <path d="M1024 204c-16-9-30-24-40-45" fill="none" stroke="#5d8f67" stroke-width="4" stroke-linecap="round"/>
+    <path d="M1096 190c-24 1-46 11-68 28 19 11 39 12 61 6 16-5 18-24 7-34z" fill="#b9d9bf" fill-opacity="0.9"/>
+    <path d="M1028 156c-17 3-31 14-43 31 18 6 36 4 52-7 12-8 10-22-9-24z" fill="#d2e9c9" fill-opacity="0.95"/>
+    <path d="M978 200c-22-1-44 5-63 19 18 15 39 20 63 13 17-5 18-25 0-32z" fill="#c5dfbb" fill-opacity="0.9"/>
+  </g>
+
+  <g filter="url(#softShadow)">
+    <text
+      x="600"
+      y="218"
+      text-anchor="middle"
+      font-size="148"
+      font-family="'STKaiti','KaiTi','FangSong','Microsoft YaHei',serif"
+      font-weight="800"
+      letter-spacing="12"
+      text-rendering="geometricPrecision"
+      fill="url(#inkGradient)"
+      stroke="url(#goldStroke)"
+      stroke-width="4.8"
+      paint-order="stroke fill"
+    >我在姚安等你</text>
+    <text
+      x="600"
+      y="218"
+      text-anchor="middle"
+      font-size="148"
+      font-family="'STKaiti','KaiTi','FangSong','Microsoft YaHei',serif"
+      font-weight="800"
+      letter-spacing="12"
+      text-rendering="geometricPrecision"
+      fill="none"
+      stroke="#fff6df"
+      stroke-opacity="0.65"
+      stroke-width="1.6"
+    >我在姚安等你</text>
+  </g>
+
+  <path d="M300 278c110 38 267 51 399 34 80-11 151-31 195-61" fill="none" stroke="#cda95f" stroke-opacity="0.76" stroke-width="4.6" stroke-linecap="round"/>
+  <path d="M318 291c132 26 288 29 433 5 45-7 88-18 130-34" fill="none" stroke="#8aaa73" stroke-opacity="0.54" stroke-width="2.8" stroke-linecap="round"/>
+
+  <g opacity="0.9">
+    <path d="M438 88c7-15 18-26 31-33 8 15 9 29 3 43-8 16-18 26-30 31-8-14-9-27-4-41z" fill="url(#petalGlow)"/>
+    <path d="M472 79c14-9 28-13 41-11-2 17-8 29-20 37-13 8-27 11-40 9 1-15 8-27 19-35z" fill="#f0c3b1" fill-opacity="0.75"/>
+    <circle cx="470" cy="100" r="7" fill="#b46d53" fill-opacity="0.55"/>
+  </g>
+
+  <g opacity="0.88">
+    <path d="M760 90c-7-16-17-27-31-34-8 15-9 29-3 43 8 16 18 26 30 31 8-13 9-27 4-40z" fill="url(#petalGlow)"/>
+    <path d="M727 80c-14-9-28-13-41-11 1 17 8 29 20 37 13 8 27 11 39 9-1-15-7-27-18-35z" fill="#f0c3b1" fill-opacity="0.75"/>
+    <circle cx="730" cy="101" r="7" fill="#b46d53" fill-opacity="0.55"/>
+  </g>
+
+  <g opacity="0.55">
+    <circle cx="300" cy="120" r="6" fill="#d8c06e"/>
+    <circle cx="901" cy="132" r="5" fill="#d8c06e"/>
+    <circle cx="852" cy="96" r="3.5" fill="#c6ddc3"/>
+    <circle cx="355" cy="86" r="3.5" fill="#c6ddc3"/>
+  </g>
+</svg>

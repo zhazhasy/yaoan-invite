@@ -55,7 +55,13 @@ function collectBody(req) {
 
 function serveStatic(req, res, pathname) {
   const target = pathname === '/' ? '/index.html' : pathname;
-  const fullPath = path.normalize(path.join(ROOT, target));
+  let decodedTarget = target;
+  try {
+    decodedTarget = decodeURIComponent(target);
+  } catch {
+    decodedTarget = target;
+  }
+  const fullPath = path.normalize(path.join(ROOT, decodedTarget));
   if (!fullPath.startsWith(ROOT)) {
     return send(res, 403, 'Forbidden', 'text/plain; charset=utf-8');
   }

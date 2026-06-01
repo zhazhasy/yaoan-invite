@@ -198,6 +198,30 @@ html, body {
   background: var(--green-050);
 }
 
+.company-signoff {
+  display: flex;
+  justify-content: center;
+  padding: 18px 10px 26px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(221, 239, 227, 0.95) 0, rgba(255, 255, 255, 0) 68%),
+    linear-gradient(180deg, #f9fdfb 0%, #eef7f1 100%);
+}
+
+.yaoan-art-title {
+  display: block;
+  width: min(100%, 860px);
+  height: auto;
+  filter: drop-shadow(0 10px 18px rgba(28, 82, 58, 0.1));
+}
+
+.section-lead {
+  margin: 0;
+  padding: 14px 16px 4px;
+  line-height: 1.8;
+  color: #24503d;
+  background: linear-gradient(180deg, #f9fdfb, var(--green-050));
+}
+
 details {
   border: 1px solid #cbe5d6;
   border-radius: 10px;
@@ -307,6 +331,12 @@ details p {
     width: min(90%, 640px);
   }
   .hero .invite-card h3 { font-size: 28px; }
+  .company-signoff {
+    padding: 14px 8px 20px;
+  }
+  .yaoan-art-title {
+    width: 100%;
+  }
 }
 
 
