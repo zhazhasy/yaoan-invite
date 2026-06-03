@@ -490,6 +490,40 @@ body {
   border: 1px solid rgba(27, 108, 81, 0.12);
 }
 
+.visual-callout {
+  margin: 10px 2px 2px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at top right, rgba(215, 180, 106, 0.34), transparent 34%),
+    linear-gradient(135deg, rgba(12, 66, 49, 0.98), rgba(33, 120, 88, 0.94));
+  border: 1px solid rgba(239, 221, 170, 0.52);
+  box-shadow:
+    0 16px 30px rgba(13, 60, 45, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+}
+
+.visual-callout__label {
+  display: inline-flex;
+  margin-bottom: 8px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(255, 247, 222, 0.16);
+  color: #fff3cb;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.visual-callout p {
+  margin: 0;
+  color: #f8fcf8;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.7;
+  text-shadow: 0 4px 14px rgba(8, 35, 27, 0.2);
+}
+
 .inset-image {
   border-radius: 14px;
   overflow: hidden;
@@ -1176,6 +1210,23 @@ details p {
   .overview-panel {
     padding: 9px 10px;
     border-radius: 16px;
+  }
+
+  .visual-callout {
+    margin: 8px 0 2px;
+    padding: 12px 12px 13px;
+    border-radius: 16px;
+  }
+
+  .visual-callout__label {
+    margin-bottom: 6px;
+    padding: 4px 10px;
+    font-size: 11px;
+  }
+
+  .visual-callout p {
+    font-size: 15px;
+    line-height: 1.65;
   }
 
   .capability-switcher .overview-tabs {
