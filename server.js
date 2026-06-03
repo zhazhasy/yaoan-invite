@@ -21,6 +21,15 @@ const MIME = {
   '.svg': 'image/svg+xml'
 };
 
+function getStaticCacheControl(ext) {
+  if (ext === '.html') return 'no-cache';
+  if (ext === '.css' || ext === '.js') return 'public, max-age=604800';
+  if (['.jpg', '.jpeg', '.png', '.webp', '.svg', '.mp3'].includes(ext)) {
+    return 'public, max-age=2592000';
+  }
+  return 'public, max-age=86400';
+}
+
 function send(res, status, body, type = 'application/json; charset=utf-8') {
   res.writeHead(status, { 'Content-Type': type });
   res.end(body);
@@ -74,14 +83,36 @@ function serveStatic(req, res, pathname) {
 
     const ext = path.extname(fullPath).toLowerCase();
     const type = MIME[ext] || 'application/octet-stream';
+    const lastModified = stats.mtime.toUTCString();
+    const etag = `W/"${stats.size}-${Math.floor(stats.mtimeMs)}"`;
     const headers = {
       'Content-Type': type,
       'Content-Length': stats.size,
-      'Cache-Control': ext === '.mp3' ? 'public, max-age=31536000, immutable' : 'no-cache',
+      'Cache-Control': getStaticCacheControl(ext),
+      'Last-Modified': lastModified,
+      ETag: etag,
       'Accept-Ranges': 'bytes'
     };
 
     const range = req.headers.range;
+    if (!range) {
+      const ifNoneMatch = req.headers['if-none-match'];
+      const ifModifiedSince = req.headers['if-modified-since'];
+      const notModifiedByTag = ifNoneMatch && ifNoneMatch === etag;
+      const notModifiedByDate =
+        ifModifiedSince && new Date(ifModifiedSince).getTime() >= stats.mtime.getTime();
+
+      if (notModifiedByTag || notModifiedByDate) {
+        res.writeHead(304, {
+          'Cache-Control': headers['Cache-Control'],
+          'Last-Modified': lastModified,
+          ETag: etag,
+          'Accept-Ranges': 'bytes'
+        });
+        return res.end();
+      }
+    }
+
     if (range) {
       const match = /bytes=(\d*)-(\d*)/.exec(range);
       if (!match) {

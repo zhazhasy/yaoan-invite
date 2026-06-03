@@ -5,9 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>姚安项目签约邀请函</title>
   <link rel="preload" as="image" href="hero-cover.jpg" fetchpriority="high" />
-  <link rel="preload" as="image" href="invite-map.jpg" fetchpriority="high" />
-  <link rel="preload" as="audio" href="munaozongge.mp3" type="audio/mpeg" fetchpriority="high" />
-  <link rel="preload" as="audio" href="yaoan-bgm.mp3" type="audio/mpeg" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -108,7 +105,7 @@
         <p class="section-kicker">以项目为媒，以合作为桥，共赴姚安食药同源产业新未来</p>
       </div>
       <div class="invite-media">
-        <img src="invite-map.jpg" alt="诚邀" class="full-image framed" loading="eager" fetchpriority="high" decoding="sync" />
+        <img src="invite-map.jpg" alt="诚邀" class="full-image framed" loading="lazy" fetchpriority="low" decoding="async" />
         <a
           id="mapJumpBtn"
           class="map-jump-btn"
@@ -192,7 +189,7 @@
     id="bgmDefault"
     class="bgm-audio"
     src="munaozongge.mp3"
-    preload="auto"
+    preload="metadata"
     autoplay
     loop
     playsinline
@@ -204,7 +201,7 @@
     id="bgmSection"
     class="bgm-audio"
     src="yaoan-bgm.mp3"
-    preload="auto"
+    preload="none"
     loop
     playsinline
     webkit-playsinline="true"
@@ -703,8 +700,6 @@
     requestAnimationFrame(resetMusicWidgetPosition);
     requestAnimationFrame(primeMusicWidget);
     primeMusicSource('default');
-    primeMusicSource('section');
-    scheduleSecondaryTrackWarmup();
     immediateKickoffMusicPlayback();
     if (window.WeixinJSBridge?.invoke) {
       bridgeKickoffMusicPlayback();
