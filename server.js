@@ -16,6 +16,7 @@ const MIME = {
   '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg',
   '.png': 'image/png',
+  '.mp3': 'audio/mpeg',
   '.webp': 'image/webp',
   '.svg': 'image/svg+xml'
 };
@@ -66,13 +67,45 @@ function serveStatic(req, res, pathname) {
     return send(res, 403, 'Forbidden', 'text/plain; charset=utf-8');
   }
 
-  fs.readFile(fullPath, (err, data) => {
-    if (err) {
+  fs.stat(fullPath, (err, stats) => {
+    if (err || !stats.isFile()) {
       return send(res, 404, 'Not Found', 'text/plain; charset=utf-8');
     }
+
     const ext = path.extname(fullPath).toLowerCase();
     const type = MIME[ext] || 'application/octet-stream';
-    send(res, 200, data, type);
+    const headers = {
+      'Content-Type': type,
+      'Content-Length': stats.size,
+      'Cache-Control': ext === '.mp3' ? 'public, max-age=31536000, immutable' : 'no-cache',
+      'Accept-Ranges': 'bytes'
+    };
+
+    const range = req.headers.range;
+    if (range) {
+      const match = /bytes=(\d*)-(\d*)/.exec(range);
+      if (!match) {
+        res.writeHead(416, { 'Content-Range': `bytes */${stats.size}` });
+        return res.end();
+      }
+
+      const start = match[1] ? Number(match[1]) : 0;
+      const end = match[2] ? Number(match[2]) : stats.size - 1;
+      if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || end < start || end >= stats.size) {
+        res.writeHead(416, { 'Content-Range': `bytes */${stats.size}` });
+        return res.end();
+      }
+
+      res.writeHead(206, {
+        ...headers,
+        'Content-Length': end - start + 1,
+        'Content-Range': `bytes ${start}-${end}/${stats.size}`
+      });
+      return fs.createReadStream(fullPath, { start, end }).pipe(res);
+    }
+
+    res.writeHead(200, headers);
+    fs.createReadStream(fullPath).pipe(res);
   });
 }
 
