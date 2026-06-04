@@ -187,7 +187,7 @@
   <audio
     id="bgmDefault"
     class="bgm-audio"
-    src="huanyingjinxingqu.mp3"
+    src="jinxingqu.MP3"
     preload="metadata"
     autoplay
     loop
@@ -257,7 +257,7 @@
     const musicToggle = document.getElementById('musicToggle');
     const musicSwitchSection = document.getElementById('yaoan-content');
     const MUSIC_TRACKS = {
-      default: 'huanyingjinxingqu.mp3',
+      default: 'jinxingqu.MP3',
       section: 'yaoan-bgm.mp3'
     };
     const TRACK_PLAYERS = {
@@ -354,6 +354,7 @@
 
     const applyMusicSettings = (player) => {
       if (!player) return;
+      player.loop = true;
       player.muted = false;
       player.volume = 0.55;
     };
@@ -605,6 +606,14 @@
         if (musicEnabled && player === activePlayer && player.paused) {
           tryPlayMusic(currentTrackKey);
         }
+      });
+      player.addEventListener('ended', () => {
+        if (!musicEnabled || player !== getTrackPlayer(currentTrackKey)) {
+          return;
+        }
+
+        player.currentTime = 0;
+        tryPlayMusic(currentTrackKey, { restart: true });
       });
     });
 
