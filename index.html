@@ -188,7 +188,7 @@
     id="bgmDefault"
     class="bgm-audio"
     src="jinxingqu.MP3"
-    preload="metadata"
+    preload="auto"
     autoplay
     loop
     playsinline
@@ -200,7 +200,7 @@
     id="bgmSection"
     class="bgm-audio"
     src="yaoan-bgm.mp3"
-    preload="none"
+    preload="auto"
     loop
     playsinline
     webkit-playsinline="true"
@@ -385,26 +385,34 @@
       };
     })();
 
-    const tryPlayMusic = async (trackKey = currentTrackKey, { restart = false } = {}) => {
+    const tryPlayMusic = async (trackKey = currentTrackKey, { restart = false, pauseOthers = true } = {}) => {
       const player = getTrackPlayer(trackKey);
       if (!player || !musicEnabled) {
         updateMusicToggle(false);
         return false;
       }
 
+      const previousTrackKey = currentTrackKey;
+
       try {
         currentTrackKey = trackKey;
         applyMusicSettings(player);
-        pauseInactiveTracks(trackKey);
+        if (pauseOthers) {
+          pauseInactiveTracks(trackKey);
+        }
         if (restart) {
           player.currentTime = 0;
         }
         await player.play();
+        if (pauseOthers) {
+          pauseInactiveTracks(trackKey);
+        }
         gestureUnlockedTrackKeys.add(trackKey);
         updateMusicToggle(musicEnabled);
         scheduleSecondaryTrackWarmup();
         return true;
       } catch (err) {
+        currentTrackKey = previousTrackKey;
         updateMusicToggle(musicEnabled);
         return false;
       }
@@ -478,17 +486,25 @@
       if (!nextPlayer || currentTrackKey === trackKey) return;
 
       primeMusicSource(trackKey);
+
+      if (musicEnabled) {
+        const started = await tryPlayMusic(trackKey, { restart: true, pauseOthers: false });
+        if (!started) {
+          return;
+        }
+      }
+
+      currentTrackKey = trackKey;
+
       if (currentPlayer && currentPlayer !== nextPlayer) {
         currentPlayer.pause();
         currentPlayer.currentTime = 0;
       }
 
-      currentTrackKey = trackKey;
-
-      if (musicEnabled) {
-        await tryPlayMusic(trackKey, { restart: true });
-      } else {
+      if (!musicEnabled) {
         nextPlayer.currentTime = 0;
+      } else {
+        updateMusicToggle(musicEnabled);
       }
     };
 
@@ -496,7 +512,7 @@
       if (!musicSwitchSection) return;
 
       const passedSectionAnchor =
-        window.scrollY + window.innerHeight * 0.28 >= musicSwitchSection.offsetTop;
+        window.scrollY + window.innerHeight * 0.5 >= musicSwitchSection.offsetTop;
       const nextTrackKey = passedSectionAnchor ? 'section' : 'default';
 
       if (nextTrackKey !== currentTrackKey) {
@@ -707,7 +723,7 @@
     updateMusicToggle(true);
     requestAnimationFrame(resetMusicWidgetPosition);
     requestAnimationFrame(primeMusicWidget);
-    primeMusicSource('default');
+    trackKeys.forEach((trackKey) => primeMusicSource(trackKey));
     immediateKickoffMusicPlayback();
     if (window.WeixinJSBridge?.invoke) {
       bridgeKickoffMusicPlayback();
