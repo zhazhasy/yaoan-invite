@@ -8,14 +8,51 @@
     body { margin:0; font-family:"Microsoft YaHei",sans-serif; background:#eef7f1; color:#193126; }
     .wrap { max-width: 1100px; margin: 24px auto; padding: 0 12px; }
     h1 { margin: 0 0 10px; }
-    .bar { display:flex; gap:12px; align-items:center; margin-bottom:12px; }
+    .bar { display:flex; gap:12px; align-items:center; margin-bottom:12px; flex-wrap: wrap; }
     .tag { background:#1f7a56; color:#fff; padding:6px 10px; border-radius:999px; font-size:13px; }
+    .btn {
+      border: 1px solid #b8d8c7;
+      background: #ffffff;
+      color: #1d4d38;
+      border-radius: 8px;
+      padding: 8px 12px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .btn:disabled { opacity: .55; cursor: not-allowed; }
+    .btn-primary {
+      background: #1f7a56;
+      border-color: #1f7a56;
+      color: #fff;
+    }
     .table-wrap {
       background: #fff;
       border-radius: 10px;
       overflow-x: scroll;
       box-shadow: 0 8px 22px rgba(20, 61, 45, 0.08);
       border: 1px solid #d9e9e0;
+    }
+    .auth-card {
+      background: #fff;
+      border-radius: 10px;
+      border: 1px solid #d9e9e0;
+      box-shadow: 0 8px 22px rgba(20, 61, 45, 0.08);
+      padding: 18px;
+      margin-bottom: 16px;
+    }
+    .auth-row {
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+    .auth-row input {
+      width: min(320px, 100%);
+      border: 1px solid #c9ddd1;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 14px;
     }
     table { width: calc(100% + 2px); min-width: 1120px; border-collapse: collapse; }
     th, td { border-bottom:1px solid #e3efe8; padding:10px; text-align:left; font-size:14px; vertical-align:middle; white-space: nowrap; }
@@ -41,10 +78,21 @@
   <div class="wrap">
     <h1>预约数据实时查看</h1>
     <div class="bar">
-      <span class="tag" id="totalTag">总计：0</span>
-      <span class="muted" id="refreshInfo">正在加载...</span>
+      <span class="tag" id="totalTag">总计：-</span>
+      <span class="tag" id="attendeesTag">预约总人数：-</span>
+      <button class="btn" id="backupBtn" disabled>一键备份 JSON</button>
+      <button class="btn" id="logoutBtn" disabled>退出后台</button>
+      <span class="muted" id="refreshInfo">请先输入后台密码</span>
     </div>
-    <div class="table-wrap">
+    <div class="auth-card" id="authCard">
+      <div>请输入后台密码后再查看、删除或备份预约数据。</div>
+      <div class="auth-row">
+        <input type="password" id="passwordInput" placeholder="请输入后台密码" autocomplete="current-password" />
+        <button class="btn btn-primary" id="loginBtn">进入后台</button>
+        <span class="muted" id="authTip"></span>
+      </div>
+    </div>
+    <div class="table-wrap" id="tableWrap" hidden>
       <table>
         <thead>
           <tr>
@@ -66,10 +114,22 @@
   <script>
     const LIST_API = '/api/appointments';
     const DELETE_API = '/api/appointments';
+    const PASSWORD_KEY = 'admin_password';
+    const ADMIN_PASSWORD_HEADER = 'x-admin-password';
 
     const rowsEl = document.getElementById('rows');
     const totalTag = document.getElementById('totalTag');
+    const attendeesTag = document.getElementById('attendeesTag');
+    const backupBtn = document.getElementById('backupBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
     const refreshInfo = document.getElementById('refreshInfo');
+    const authCard = document.getElementById('authCard');
+    const tableWrap = document.getElementById('tableWrap');
+    const passwordInput = document.getElementById('passwordInput');
+    const loginBtn = document.getElementById('loginBtn');
+    const authTip = document.getElementById('authTip');
+
+    let adminPassword = sessionStorage.getItem(PASSWORD_KEY) || '';
 
     function escapeHtml(s) {
       return String(s || '')
@@ -80,12 +140,85 @@
         .replaceAll("'", '&#39;');
     }
 
-    async function loadData() {
+    function setLockedState(message = '请先输入后台密码') {
+      totalTag.textContent = '总计：-';
+      attendeesTag.textContent = '预约总人数：-';
+      refreshInfo.textContent = message;
+      rowsEl.innerHTML = '';
+      authCard.hidden = false;
+      tableWrap.hidden = true;
+      backupBtn.disabled = true;
+      logoutBtn.disabled = true;
+    }
+
+    function setUnlockedState() {
+      authCard.hidden = true;
+      tableWrap.hidden = false;
+      backupBtn.disabled = false;
+      logoutBtn.disabled = false;
+      authTip.textContent = '';
+    }
+
+    function savePassword(password) {
+      adminPassword = password;
+      sessionStorage.setItem(PASSWORD_KEY, password);
+    }
+
+    function clearPassword(message = '请先输入后台密码') {
+      adminPassword = '';
+      sessionStorage.removeItem(PASSWORD_KEY);
+      passwordInput.value = '';
+      setLockedState(message);
+    }
+
+    function getAuthHeaders() {
+      return adminPassword ? { [ADMIN_PASSWORD_HEADER]: adminPassword } : {};
+    }
+
+    async function readJsonSafe(resp) {
       try {
-        const resp = await fetch(LIST_API);
-        const json = await resp.json();
+        return await resp.json();
+      } catch {
+        return null;
+      }
+    }
+
+    async function handleAuthError(resp, fallbackMessage) {
+      const data = await readJsonSafe(resp);
+      authTip.textContent = data?.message || fallbackMessage;
+      clearPassword(data?.message || fallbackMessage);
+    }
+
+    async function loadData() {
+      if (location.protocol === 'file:') {
+        setLockedState('请通过 Cloudflare 域名或本地服务器访问后台，直接打开文件无法连接 API');
+        authTip.textContent = '当前是 file:// 页面，不能直接请求线上接口。';
+        return;
+      }
+
+      if (!adminPassword) {
+        setLockedState('请先输入后台密码');
+        return;
+      }
+
+      try {
+        const resp = await fetch(LIST_API, { headers: getAuthHeaders() });
+        if (resp.status === 401 || resp.status === 503) {
+          await handleAuthError(resp, '后台密码错误或未配置');
+          return;
+        }
+
+        const json = await readJsonSafe(resp);
+        if (!resp.ok || !json?.ok) {
+          refreshInfo.textContent = json?.message || '加载失败，5秒后重试';
+          return;
+        }
+
         const list = json.data || [];
+        const totalAttendees = list.reduce((sum, item) => sum + (Number(item.attendees) || 0), 0);
+        setUnlockedState();
         totalTag.textContent = `总计：${list.length}`;
+        attendeesTag.textContent = `预约总人数：${totalAttendees}`;
 
         rowsEl.innerHTML = list.map(item => `
           <tr>
@@ -105,10 +238,85 @@
         }
 
         refreshInfo.textContent = `最近刷新：${new Date().toLocaleTimeString('zh-CN')}`;
-      } catch (e) {
+      } catch {
         refreshInfo.textContent = '加载失败，5秒后重试';
       }
     }
+
+    async function login() {
+      const password = passwordInput.value.trim();
+      if (!password) {
+        authTip.textContent = '请输入后台密码';
+        return;
+      }
+
+      authTip.textContent = '正在验证密码...';
+      savePassword(password);
+      await loadData();
+    }
+
+    async function exportBackup() {
+      if (!adminPassword) {
+        setLockedState('请先输入后台密码');
+        return;
+      }
+
+      backupBtn.disabled = true;
+      refreshInfo.textContent = '正在生成备份文件...';
+
+      try {
+        const resp = await fetch(`${LIST_API}?export=json`, {
+          headers: getAuthHeaders()
+        });
+
+        if (resp.status === 401 || resp.status === 503) {
+          await handleAuthError(resp, '后台密码错误或未配置');
+          return;
+        }
+
+        if (!resp.ok) {
+          const json = await readJsonSafe(resp);
+          alert(json?.message || '备份失败，请稍后重试');
+          refreshInfo.textContent = json?.message || '备份失败，请稍后重试';
+          return;
+        }
+
+        const blob = await resp.blob();
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        const stamp = new Date().toISOString().slice(0, 19).replaceAll(':', '-');
+        link.href = url;
+        link.download = `appointments-backup-${stamp}.json`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+        refreshInfo.textContent = `备份完成：${new Date().toLocaleTimeString('zh-CN')}`;
+      } catch {
+        alert('备份失败，请稍后重试');
+        refreshInfo.textContent = '备份失败，请稍后重试';
+      } finally {
+        if (adminPassword) {
+          backupBtn.disabled = false;
+          logoutBtn.disabled = false;
+        }
+      }
+    }
+
+    loginBtn.addEventListener('click', login);
+    backupBtn.addEventListener('click', exportBackup);
+
+    passwordInput.addEventListener('keydown', async (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        await login();
+      }
+    });
+
+    logoutBtn.addEventListener('click', () => {
+      authTip.textContent = '已退出后台';
+      clearPassword('请先输入后台密码');
+    });
 
     rowsEl.addEventListener('click', async (e) => {
       const btn = e.target.closest('.btn-del');
@@ -119,8 +327,17 @@
 
       btn.disabled = true;
       try {
-        const resp = await fetch(`${DELETE_API}?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
-        const json = await resp.json();
+        const resp = await fetch(`${DELETE_API}?id=${encodeURIComponent(id)}`, {
+          method: 'DELETE',
+          headers: getAuthHeaders()
+        });
+
+        if (resp.status === 401 || resp.status === 503) {
+          await handleAuthError(resp, '后台密码错误或未配置');
+          return;
+        }
+
+        const json = await readJsonSafe(resp);
         if (!resp.ok || !json.ok) {
           alert(json.message || '删除失败');
         }
@@ -131,6 +348,12 @@
         btn.disabled = false;
       }
     });
+
+    if (adminPassword) {
+      passwordInput.value = adminPassword;
+    } else {
+      setLockedState('请先输入后台密码');
+    }
 
     loadData();
     setInterval(loadData, 5000);

@@ -7,6 +7,8 @@ const PORT = process.env.PORT || 3000;
 const ROOT = __dirname;
 const DATA_DIR = path.join(ROOT, 'data');
 const DATA_FILE = path.join(DATA_DIR, 'appointments.json');
+const ADMIN_PASSWORD = String(process.env.ADMIN_PASSWORD || '').trim();
+const ADMIN_PASSWORD_HEADER = 'x-admin-password';
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -30,8 +32,8 @@ function getStaticCacheControl(ext) {
   return 'public, max-age=86400';
 }
 
-function send(res, status, body, type = 'application/json; charset=utf-8') {
-  res.writeHead(status, { 'Content-Type': type });
+function send(res, status, body, type = 'application/json; charset=utf-8', extraHeaders = {}) {
+  res.writeHead(status, { 'Content-Type': type, ...extraHeaders });
   res.end(body);
 }
 
@@ -140,6 +142,65 @@ function serveStatic(req, res, pathname) {
   });
 }
 
+function getProvidedPassword(req) {
+  const headerPassword = String(req.headers[ADMIN_PASSWORD_HEADER] || '').trim();
+  if (headerPassword) return headerPassword;
+
+  const authorization = String(req.headers.authorization || '').trim();
+  const match = authorization.match(/^Bearer\s+(.+)$/i);
+  return match ? match[1].trim() : '';
+}
+
+function requireAdminAuth(req, res) {
+  if (!ADMIN_PASSWORD) {
+    send(
+      res,
+      503,
+      JSON.stringify({ ok: false, message: '后台密码未配置，请先设置 ADMIN_PASSWORD。' }),
+      'application/json; charset=utf-8'
+    );
+    return false;
+  }
+
+  const providedPassword = getProvidedPassword(req);
+  if (!providedPassword || providedPassword !== ADMIN_PASSWORD) {
+    send(
+      res,
+      401,
+      JSON.stringify({ ok: false, message: '后台密码错误或未提供密码。' }),
+      'application/json; charset=utf-8',
+      { 'WWW-Authenticate': 'Bearer realm="admin"' }
+    );
+    return false;
+  }
+
+  return true;
+}
+
+function exportRows(res, rows, format) {
+  if (format !== 'json') {
+    return send(res, 400, JSON.stringify({ ok: false, message: '当前仅支持 JSON 备份导出。' }));
+  }
+
+  const exportedAt = new Date().toISOString();
+  const totalAttendees = rows.reduce((sum, item) => sum + (Number(item.attendees) || 0), 0);
+  const fileName = `appointments-backup-${exportedAt.replaceAll(':', '-')}.json`;
+  const backup = {
+    exportedAt,
+    total: rows.length,
+    totalAttendees,
+    data: rows
+  };
+
+  return send(
+    res,
+    200,
+    JSON.stringify(backup, null, 2),
+    'application/json; charset=utf-8',
+    { 'Content-Disposition': `attachment; filename="${fileName}"` }
+  );
+}
+
 ensureDataFile();
 
 const server = http.createServer(async (req, res) => {
@@ -177,11 +238,19 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (pathname === '/api/appointments' && req.method === 'GET') {
+    if (!requireAdminAuth(req, res)) return;
+
     const rows = safeReadJson(DATA_FILE);
+    const exportFormat = String(url.searchParams.get('export') || '').trim().toLowerCase();
+    if (exportFormat) {
+      return exportRows(res, rows, exportFormat);
+    }
     return send(res, 200, JSON.stringify({ ok: true, total: rows.length, data: rows }));
   }
 
   if (pathname === '/api/appointments' && req.method === 'DELETE') {
+    if (!requireAdminAuth(req, res)) return;
+
     try {
       const id = String(url.searchParams.get('id') || '').trim();
       if (!id) {
