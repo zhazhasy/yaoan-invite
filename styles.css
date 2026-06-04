@@ -52,14 +52,16 @@ body {
   top: 42vh;
   z-index: 140;
   display: block;
-  touch-action: none;
+  touch-action: manipulation;
   opacity: 0.92;
   transition: opacity 0.2s ease, filter 0.2s ease;
+  will-change: transform, opacity;
 }
 
 .music-widget.is-dragging {
   cursor: grabbing;
   opacity: 1;
+  touch-action: none;
 }
 
 .music-widget.is-awake {
@@ -169,12 +171,13 @@ body {
   box-shadow: var(--shadow);
   opacity: 1;
   transform: none;
-  transition: all 0.7s ease;
+  transition: opacity 0.52s ease, transform 0.52s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform, opacity;
 }
 
 .js .page {
   opacity: 0;
-  transform: translateY(24px);
+  transform: translateY(14px);
 }
 
 .page.visible {
@@ -952,23 +955,23 @@ details p {
 }
 
 .zoom-in.visible {
-  animation: zoomIn 0.7s both;
+  animation: zoomIn 0.52s both;
 }
 
 .slide-up.visible {
-  animation: slideUp 0.7s both;
+  animation: slideUp 0.52s both;
 }
 
 .fade-left.visible {
-  animation: fadeLeft 0.7s both;
+  animation: fadeLeft 0.52s both;
 }
 
 .rotate-in.visible {
-  animation: rotateIn 0.7s both;
+  animation: rotateIn 0.52s both;
 }
 
 .fade-right.visible {
-  animation: fadeRight 0.7s both;
+  animation: fadeRight 0.52s both;
 }
 
 .slide-right.visible {
@@ -976,11 +979,11 @@ details p {
 }
 
 .zoom-out.visible {
-  animation: zoomOut 0.7s both;
+  animation: zoomOut 0.52s both;
 }
 
 .flip-up.visible {
-  animation: flipUp 0.8s both;
+  animation: flipUp 0.58s both;
 }
 
 @keyframes zoomIn {
@@ -997,7 +1000,7 @@ details p {
 @keyframes slideUp {
   from {
     opacity: 0;
-    transform: translateY(36px);
+    transform: translateY(18px);
   }
   to {
     opacity: 1;
@@ -1008,7 +1011,7 @@ details p {
 @keyframes fadeLeft {
   from {
     opacity: 0;
-    transform: translateX(28px);
+    transform: translateX(16px);
   }
   to {
     opacity: 1;
@@ -1019,7 +1022,7 @@ details p {
 @keyframes rotateIn {
   from {
     opacity: 0;
-    transform: rotate(-1.6deg) scale(0.98);
+    transform: rotate(-0.8deg) scale(0.99);
   }
   to {
     opacity: 1;
@@ -1030,7 +1033,7 @@ details p {
 @keyframes fadeRight {
   from {
     opacity: 0;
-    transform: translateX(-28px);
+    transform: translateX(-16px);
   }
   to {
     opacity: 1;
@@ -1052,7 +1055,7 @@ details p {
 @keyframes zoomOut {
   from {
     opacity: 0;
-    transform: scale(1.04);
+    transform: scale(1.02);
   }
   to {
     opacity: 1;
@@ -1063,7 +1066,7 @@ details p {
 @keyframes flipUp {
   from {
     opacity: 0;
-    transform: perspective(700px) rotateX(8deg);
+    transform: perspective(700px) rotateX(4deg);
   }
   to {
     opacity: 1;
