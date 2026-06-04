@@ -271,19 +271,12 @@
     const trackKeys = Object.keys(TRACK_PLAYERS);
     const trackPlayers = Object.values(TRACK_PLAYERS).filter(Boolean);
     const MUSIC_VOLUME = 0.55;
-    const MUSIC_FADE_DURATION = 420;
     let musicEnabled = true;
     let suppressMusicToggleClick = false;
     let currentTrackKey = 'default';
-    const primedTrackKeys = new Set();
-    const gestureUnlockedTrackKeys = new Set();
-    const gesturePrimingTrackKeys = new Set();
-    let secondaryTrackUnlockPromise = null;
     let musicTrackSyncFrame = 0;
-    let switchingTrack = false;
-    let queuedTrackKey = null;
-    let autoplayAttemptPromise = null;
-    const playerFadeFrames = new WeakMap();
+    let wakeEventsAttached = true;
+    let switchInFlight = false;
     const getMusicFreeMargin = () => 10;
     const getMusicTopPadding = () => 84;
     const getMusicBottomPadding = () => 18;
@@ -357,48 +350,6 @@
 
     const getTrackPlayer = (trackKey = currentTrackKey) => TRACK_PLAYERS[trackKey] || null;
 
-    const cancelPlayerFade = (player) => {
-      const frameId = playerFadeFrames.get(player);
-      if (!frameId) return;
-      window.cancelAnimationFrame(frameId);
-      playerFadeFrames.delete(player);
-    };
-
-    const fadePlayerVolume = (player, from, to, duration = MUSIC_FADE_DURATION) => {
-      if (!player) return Promise.resolve();
-
-      cancelPlayerFade(player);
-
-      if (!Number.isFinite(duration) || duration <= 0 || Math.abs(to - from) < 0.001) {
-        player.volume = to;
-        return Promise.resolve();
-      }
-
-      player.volume = from;
-
-      return new Promise((resolve) => {
-        const startTime = performance.now();
-
-        const tick = (now) => {
-          const progress = Math.min(1, (now - startTime) / duration);
-          player.volume = from + (to - from) * progress;
-
-          if (progress < 1) {
-            const frameId = window.requestAnimationFrame(tick);
-            playerFadeFrames.set(player, frameId);
-            return;
-          }
-
-          player.volume = to;
-          playerFadeFrames.delete(player);
-          resolve();
-        };
-
-        const frameId = window.requestAnimationFrame(tick);
-        playerFadeFrames.set(player, frameId);
-      });
-    };
-
     const applyMusicSettings = (player, { muted = false, volume = MUSIC_VOLUME } = {}) => {
       if (!player) return;
       player.loop = true;
@@ -406,38 +357,34 @@
       player.volume = volume;
     };
 
+    const pausePlayer = (player, { reset = false } = {}) => {
+      if (!player) return;
+      player.pause();
+      if (reset) {
+        player.currentTime = 0;
+      }
+      applyMusicSettings(player);
+    };
+
     const pauseInactiveTracks = (activeTrackKey = currentTrackKey, { reset = false } = {}) => {
       trackKeys.forEach((trackKey) => {
         if (trackKey === activeTrackKey) return;
-
-        const player = getTrackPlayer(trackKey);
-        if (!player) return;
-
-        cancelPlayerFade(player);
-        player.pause();
-        if (reset) {
-          player.currentTime = 0;
-        }
-        applyMusicSettings(player);
+        pausePlayer(getTrackPlayer(trackKey), { reset });
       });
     };
 
-    const scheduleSecondaryTrackWarmup = (() => {
-      let warmupTimerId = null;
+    const primeMusicSource = (trackKey = currentTrackKey) => {
+      const trackSrc = MUSIC_TRACKS[trackKey];
+      const player = getTrackPlayer(trackKey);
+      if (!player || !trackSrc) return;
+      if (player.getAttribute('src') !== trackSrc) {
+        player.setAttribute('src', trackSrc);
+      }
+      player.preload = 'auto';
+      applyMusicSettings(player);
+    };
 
-      return () => {
-        if (warmupTimerId !== null) return;
-
-        warmupTimerId = window.setTimeout(() => {
-          warmupTimerId = null;
-          trackKeys
-            .filter((trackKey) => trackKey !== currentTrackKey)
-            .forEach((trackKey) => primeMusicSource(trackKey));
-        }, 160);
-      };
-    })();
-
-    const playMusicWithFadeIn = async (trackKey = currentTrackKey, { restart = false } = {}) => {
+    const playTrack = async (trackKey = currentTrackKey, { restart = false, mutedStart = false } = {}) => {
       const player = getTrackPlayer(trackKey);
       if (!player || !musicEnabled) {
         updateMusicToggle(false);
@@ -446,160 +393,52 @@
 
       currentTrackKey = trackKey;
       primeMusicSource(trackKey);
-      cancelPlayerFade(player);
-      applyMusicSettings(player, { muted: false, volume: 0 });
       pauseInactiveTracks(trackKey);
 
       if (restart) {
         player.currentTime = 0;
       }
 
+      applyMusicSettings(player, { muted: mutedStart, volume: MUSIC_VOLUME });
+
       try {
         await player.play();
-        gestureUnlockedTrackKeys.add(trackKey);
-        await fadePlayerVolume(player, 0, MUSIC_VOLUME);
+        if (mutedStart) {
+          player.muted = false;
+          player.volume = MUSIC_VOLUME;
+        }
         updateMusicToggle(true);
-        scheduleSecondaryTrackWarmup();
         return true;
       } catch (err) {
-        applyMusicSettings(player);
         updateMusicToggle(musicEnabled);
         return false;
       }
     };
 
-    const primeMusicSource = (trackKey = currentTrackKey) => {
-      const trackSrc = MUSIC_TRACKS[trackKey];
-      const player = getTrackPlayer(trackKey);
-      if (!player || !trackSrc || primedTrackKeys.has(trackKey)) return;
-
-      primedTrackKeys.add(trackKey);
-      player.preload = 'auto';
-      applyMusicSettings(player);
-      if (player.getAttribute('src') !== trackSrc) {
-        player.setAttribute('src', trackSrc);
-      }
-      player.load();
-    };
-
-    const primeTrackPlaybackLock = (trackKey) => {
-      const player = getTrackPlayer(trackKey);
-      if (!player || gestureUnlockedTrackKeys.has(trackKey)) {
-        return Promise.resolve(Boolean(player));
-      }
-
-      primeMusicSource(trackKey);
-      gesturePrimingTrackKeys.add(trackKey);
-      player.muted = true;
-      player.volume = 0;
-
-      return Promise.resolve(player.play())
-        .then(() => {
-          gestureUnlockedTrackKeys.add(trackKey);
-          player.pause();
-          player.currentTime = 0;
-          return true;
-        })
-        .catch(() => false)
-        .finally(() => {
-          gesturePrimingTrackKeys.delete(trackKey);
-          player.muted = false;
-          player.volume = MUSIC_VOLUME;
-        });
-    };
-
-    const unlockSecondaryTracksFromGesture = () => {
-      const pendingTrackKeys = trackKeys.filter(
-        (trackKey) => trackKey !== currentTrackKey && !gestureUnlockedTrackKeys.has(trackKey)
-      );
-
-      if (!pendingTrackKeys.length) {
-        return Promise.resolve(true);
-      }
-
-      if (secondaryTrackUnlockPromise) {
-        return secondaryTrackUnlockPromise;
-      }
-
-      secondaryTrackUnlockPromise = Promise.allSettled(
-        pendingTrackKeys.map((trackKey) => primeTrackPlaybackLock(trackKey))
-      ).finally(() => {
-        secondaryTrackUnlockPromise = null;
-      });
-
-      return secondaryTrackUnlockPromise;
-    };
-
-    const performTrackSwitch = async (trackKey) => {
-      const nextPlayer = getTrackPlayer(trackKey);
-      const currentPlayer = getTrackPlayer(currentTrackKey);
-      if (!nextPlayer || currentTrackKey === trackKey) return;
-
-      primeMusicSource(trackKey);
-      const previousTrackKey = currentTrackKey;
-      currentTrackKey = trackKey;
-
-      if (!musicEnabled) {
-        pauseInactiveTracks(trackKey, { reset: true });
-        nextPlayer.currentTime = 0;
-        updateMusicToggle(false);
-        return;
-      }
-
-      cancelPlayerFade(nextPlayer);
-      applyMusicSettings(nextPlayer, { muted: false, volume: 0 });
-      nextPlayer.currentTime = 0;
-
-      try {
-        await nextPlayer.play();
-        gestureUnlockedTrackKeys.add(trackKey);
-      } catch (err) {
-        currentTrackKey = previousTrackKey;
-        applyMusicSettings(nextPlayer);
-        return;
-      }
-
-      await Promise.all([
-        fadePlayerVolume(nextPlayer, nextPlayer.volume || 0, MUSIC_VOLUME),
-        currentPlayer && currentPlayer !== nextPlayer
-          ? fadePlayerVolume(currentPlayer, currentPlayer.volume || MUSIC_VOLUME, 0)
-          : Promise.resolve()
-      ]);
-
-      if (currentPlayer && currentPlayer !== nextPlayer) {
-        cancelPlayerFade(currentPlayer);
-        currentPlayer.pause();
-        currentPlayer.currentTime = 0;
-        applyMusicSettings(currentPlayer);
-      }
-
-      applyMusicSettings(nextPlayer);
-      updateMusicToggle(true);
-      scheduleSecondaryTrackWarmup();
-    };
+    const tryAutoplay = () => playTrack(currentTrackKey, { mutedStart: true });
 
     const switchMusicTrack = async (trackKey) => {
-      if (!trackKey) return;
+      if (!trackKey || trackKey === currentTrackKey || switchInFlight) return;
 
-      if (switchingTrack) {
-        queuedTrackKey = trackKey;
-        return;
-      }
+      const nextPlayer = getTrackPlayer(trackKey);
+      if (!nextPlayer) return;
 
-      if (trackKey === currentTrackKey) return;
-
-      switchingTrack = true;
-
+      switchInFlight = true;
       try {
-        let nextTrackKey = trackKey;
+        if (!musicEnabled) {
+          currentTrackKey = trackKey;
+          pauseInactiveTracks(trackKey, { reset: true });
+          pausePlayer(nextPlayer, { reset: true });
+          updateMusicToggle(false);
+          return;
+        }
 
-        while (nextTrackKey && nextTrackKey !== currentTrackKey) {
-          queuedTrackKey = null;
-          await performTrackSwitch(nextTrackKey);
-          nextTrackKey = queuedTrackKey;
+        const started = await playTrack(trackKey, { restart: true });
+        if (!started) {
+          return;
         }
       } finally {
-        switchingTrack = false;
+        switchInFlight = false;
       }
     };
 
@@ -607,7 +446,7 @@
       if (!musicSwitchSection) return;
 
       const passedSectionAnchor =
-        window.scrollY + window.innerHeight * 0.5 >= musicSwitchSection.offsetTop;
+        window.scrollY + window.innerHeight * 0.42 >= musicSwitchSection.offsetTop;
       const nextTrackKey = passedSectionAnchor ? 'section' : 'default';
 
       if (nextTrackKey !== currentTrackKey) {
@@ -624,171 +463,57 @@
       });
     };
 
-    const bootMusicPlayback = async () => {
-      const player = getTrackPlayer(currentTrackKey);
-      if (!player || !musicEnabled) {
-        updateMusicToggle(false);
-        return false;
+    const detachMusicWakeEvents = () => {
+      if (!wakeEventsAttached) return;
+      ['pointerdown', 'touchstart', 'click', 'keydown', 'wheel'].forEach((eventName) => {
+        window.removeEventListener(eventName, wakeMusic, true);
+      });
+      wakeEventsAttached = false;
+    };
+
+    const wakeMusic = async (event) => {
+      if (!musicEnabled) {
+        detachMusicWakeEvents();
+        return;
       }
 
-      primeMusicSource(currentTrackKey);
-      cancelPlayerFade(player);
-      applyMusicSettings(player, { muted: true, volume: 0 });
-
-      try {
-        await player.play();
-        gestureUnlockedTrackKeys.add(currentTrackKey);
-        player.muted = false;
-        await fadePlayerVolume(player, 0, MUSIC_VOLUME);
-        updateMusicToggle(true);
-        scheduleSecondaryTrackWarmup();
-        return true;
-      } catch (err) {
-        player.pause();
-        player.currentTime = 0;
-        applyMusicSettings(player);
-        updateMusicToggle(musicEnabled);
-        return false;
-      }
-    };
-
-    const ensureAutoplayAttempt = () => {
-      if (autoplayAttemptPromise) {
-        return autoplayAttemptPromise;
+      if (event?.target instanceof Node && musicWidget?.contains(event.target)) {
+        return;
       }
 
-      autoplayAttemptPromise = bootMusicPlayback().finally(() => {
-        autoplayAttemptPromise = null;
-      });
-
-      return autoplayAttemptPromise;
-    };
-
-    const kickoffMusicPlayback = (delays = [0, 120, 320, 720, 1400]) => {
-      if (!musicEnabled) return;
-
-      ensureAutoplayAttempt();
-      delays.forEach((delay) => {
-        window.setTimeout(() => {
-          const activePlayer = getTrackPlayer(currentTrackKey);
-          if (musicEnabled && activePlayer?.paused) {
-            playMusicWithFadeIn(currentTrackKey);
-          }
-        }, delay);
-      });
-    };
-
-    const immediateKickoffMusicPlayback = () => {
-      kickoffMusicPlayback([0, 60, 180, 420, 900, 1600]);
-      window.requestAnimationFrame(() => {
-        const activePlayer = getTrackPlayer(currentTrackKey);
-        if (musicEnabled && activePlayer?.paused) {
-          ensureAutoplayAttempt();
-        }
-      });
-    };
-
-    const bridgeKickoffMusicPlayback = () => {
-      immediateKickoffMusicPlayback();
-
-      if (window.WeixinJSBridge?.invoke) {
-        window.WeixinJSBridge.invoke('getNetworkType', {}, () => {
-          immediateKickoffMusicPlayback();
-        });
+      const activePlayer = getTrackPlayer(currentTrackKey);
+      if (!activePlayer?.paused) {
+        detachMusicWakeEvents();
+        return;
       }
-    };
 
-    const pauseMusic = () => {
-      trackPlayers.forEach((player) => {
-        cancelPlayerFade(player);
-        player.pause();
-        applyMusicSettings(player);
-      });
-      updateMusicToggle(false);
+      const started = await playTrack(currentTrackKey);
+      if (started) {
+        detachMusicWakeEvents();
+      }
     };
 
     const attachMusicWakeEvents = () => {
-      const wakeEvents = ['pointerdown', 'touchstart', 'click', 'keydown', 'wheel'];
-
-      const detachWakeEvents = () => {
-        wakeEvents.forEach((eventName) => {
-          window.removeEventListener(eventName, wakeMusic, true);
-        });
-      };
-
-      const wakeMusic = (event) => {
-        if (!musicEnabled) {
-          detachWakeEvents();
-          return;
-        }
-
-        if (event?.target instanceof Node && musicWidget?.contains(event.target)) {
-          return;
-        }
-
-        const activePlayer = getTrackPlayer(currentTrackKey);
-        if (!activePlayer?.paused) {
-          detachWakeEvents();
-          return;
-        }
-
-        primeMusicSource(currentTrackKey);
-        playMusicWithFadeIn(currentTrackKey).then((started) => {
-          if (started) {
-            detachWakeEvents();
-            unlockSecondaryTracksFromGesture();
-          }
-        });
-      };
-
-      wakeEvents.forEach((eventName) => {
+      if (!wakeEventsAttached) {
+        wakeEventsAttached = true;
+      }
+      ['pointerdown', 'touchstart', 'click', 'keydown', 'wheel'].forEach((eventName) => {
         window.addEventListener(eventName, wakeMusic, true);
       });
     };
 
-    trackKeys.forEach((trackKey) => {
-      const player = getTrackPlayer(trackKey);
+    trackPlayers.forEach((player) => {
       if (!player) return;
-
-      player.addEventListener('play', () => {
-        player.loop = true;
-        if (!gesturePrimingTrackKeys.has(trackKey) && !switchingTrack) {
-          pauseInactiveTracks(currentTrackKey);
-        }
-        updateMusicToggle(musicEnabled);
-        scheduleSecondaryTrackWarmup();
-      });
-      player.addEventListener('pause', () => updateMusicToggle(musicEnabled));
-      player.addEventListener('canplay', () => {
-        const activePlayer = getTrackPlayer(currentTrackKey);
-        if (musicEnabled && player === activePlayer && player.paused && !switchingTrack) {
-          ensureAutoplayAttempt();
-        }
-      });
-      player.addEventListener('loadeddata', () => {
-        const activePlayer = getTrackPlayer(currentTrackKey);
-        if (musicEnabled && player === activePlayer && player.paused && !switchingTrack) {
-          ensureAutoplayAttempt();
-        }
-      });
-      player.addEventListener('ended', () => {
-        if (!musicEnabled || player !== getTrackPlayer(currentTrackKey)) {
-          return;
-        }
-
-        player.currentTime = 0;
-        playMusicWithFadeIn(currentTrackKey, { restart: true });
-      });
+      player.addEventListener('play', () => updateMusicToggle(musicEnabled));
+      player.addEventListener('pause', () => updateMusicToggle(musicEnabled && !getTrackPlayer(currentTrackKey)?.paused));
     });
 
     if ('IntersectionObserver' in window && musicSwitchSection) {
-      const musicTrackObserver = new IntersectionObserver((entries) => {
-        if (entries.some((entry) => entry.isIntersecting || entry.boundingClientRect.top > 0)) {
-          requestMusicTrackSync();
-        }
+      const musicTrackObserver = new IntersectionObserver(() => {
+        requestMusicTrackSync();
       }, {
-        threshold: 0.01,
-        rootMargin: '24% 0px -24% 0px'
+        threshold: 0.08,
+        rootMargin: '20% 0px -20% 0px'
       });
 
       musicTrackObserver.observe(musicSwitchSection);
@@ -802,25 +527,23 @@
       }
 
       showMusicWidget();
-      const activePlayer = getTrackPlayer(currentTrackKey);
 
       if (!musicEnabled) {
         musicEnabled = true;
         updateMusicToggle(true);
-        unlockSecondaryTracksFromGesture();
-        await playMusicWithFadeIn(currentTrackKey);
+        await playTrack(currentTrackKey);
         return;
       }
 
+      const activePlayer = getTrackPlayer(currentTrackKey);
       if (activePlayer?.paused) {
-        updateMusicToggle(true);
-        unlockSecondaryTracksFromGesture();
-        await playMusicWithFadeIn(currentTrackKey);
+        await playTrack(currentTrackKey);
         return;
       }
 
       musicEnabled = false;
-      pauseMusic();
+      trackPlayers.forEach((player) => pausePlayer(player));
+      updateMusicToggle(false);
     });
 
     musicToggle?.addEventListener('pointerdown', (event) => {
@@ -876,27 +599,31 @@
     requestAnimationFrame(primeMusicWidget);
     trackKeys.forEach((trackKey) => primeMusicSource(trackKey));
     requestMusicTrackSync();
-    immediateKickoffMusicPlayback();
+    tryAutoplay();
     if (window.WeixinJSBridge?.invoke) {
-      bridgeKickoffMusicPlayback();
+      window.WeixinJSBridge.invoke('getNetworkType', {}, () => {
+        tryAutoplay();
+      });
     }
     attachMusicWakeEvents();
-    document.addEventListener('readystatechange', () => {
-      if (document.readyState === 'interactive' || document.readyState === 'complete') {
-        immediateKickoffMusicPlayback();
+    window.addEventListener('pageshow', () => {
+      const activePlayer = getTrackPlayer(currentTrackKey);
+      if (musicEnabled && activePlayer?.paused) {
+        tryAutoplay();
       }
     });
-    window.addEventListener('load', immediateKickoffMusicPlayback, { once: true });
-    window.addEventListener('pageshow', immediateKickoffMusicPlayback);
-    window.addEventListener('focus', immediateKickoffMusicPlayback);
     document.addEventListener('visibilitychange', () => {
       const activePlayer = getTrackPlayer(currentTrackKey);
       if (document.visibilityState === 'visible' && musicEnabled && activePlayer?.paused) {
-        immediateKickoffMusicPlayback();
+        tryAutoplay();
       }
     });
-    document.addEventListener('WeixinJSBridgeReady', bridgeKickoffMusicPlayback, false);
-    document.addEventListener('YixinJSBridgeReady', bridgeKickoffMusicPlayback, false);
+    document.addEventListener('WeixinJSBridgeReady', () => {
+      tryAutoplay();
+    }, false);
+    document.addEventListener('YixinJSBridgeReady', () => {
+      tryAutoplay();
+    }, false);
     window.addEventListener('resize', () => {
       nudgeMusicWidgetIntoView();
       requestMusicTrackSync();
