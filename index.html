@@ -190,7 +190,6 @@
     src="jinxingqu.MP3"
     preload="auto"
     autoplay
-    muted
     loop
     playsinline
     webkit-playsinline="true"
@@ -415,7 +414,14 @@
       }
     };
 
-    const tryAutoplay = () => playTrack(currentTrackKey, { mutedStart: true });
+    const tryAutoplay = async () => {
+      const directStarted = await playTrack(currentTrackKey);
+      if (directStarted) {
+        return true;
+      }
+
+      return playTrack(currentTrackKey, { mutedStart: true });
+    };
 
     const switchMusicTrack = async (trackKey) => {
       if (!trackKey || trackKey === currentTrackKey || switchInFlight) return;
