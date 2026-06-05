@@ -208,7 +208,7 @@
     x-webkit-airplay="allow"
   ></audio>
   <div class="music-widget" id="musicWidget">
-    <button type="button" class="music-toggle" id="musicToggle" aria-pressed="true" aria-label="关闭背景音乐" title="点击开关背景音乐，按住可拖动">
+    <button type="button" class="music-toggle" id="musicToggle" aria-pressed="true" aria-label="关闭背景音乐" title="点击开关背景音乐，长按可拖动">
       <span class="music-toggle__icon" aria-hidden="true">
         <span class="music-toggle__glyph">♪</span>
       </span>
@@ -344,7 +344,7 @@
       musicToggle?.classList.toggle('is-active', isEnabled);
       musicToggle?.setAttribute('aria-pressed', String(isEnabled));
       musicToggle?.setAttribute('aria-label', isEnabled ? '关闭背景音乐' : '打开背景音乐');
-      musicToggle?.setAttribute('title', isEnabled ? '点击关闭背景音乐，桌面端可拖动' : '点击打开背景音乐，桌面端可拖动');
+      musicToggle?.setAttribute('title', isEnabled ? '点击关闭背景音乐，长按可拖动' : '点击打开背景音乐，长按可拖动');
     };
 
     const getTrackPlayer = (trackKey = currentTrackKey) => TRACK_PLAYERS[trackKey] || null;
@@ -390,9 +390,7 @@
         return false;
       }
 
-      currentTrackKey = trackKey;
       primeMusicSource(trackKey);
-      pauseInactiveTracks(trackKey);
 
       if (restart) {
         player.currentTime = 0;
@@ -406,9 +404,12 @@
           player.muted = false;
           player.volume = MUSIC_VOLUME;
         }
+        currentTrackKey = trackKey;
+        pauseInactiveTracks(trackKey);
         updateMusicToggle(true);
         return true;
       } catch (err) {
+        pausePlayer(player);
         updateMusicToggle(musicEnabled);
         return false;
       }
@@ -426,6 +427,8 @@
     const switchMusicTrack = async (trackKey) => {
       if (!trackKey || trackKey === currentTrackKey || switchInFlight) return;
 
+      const previousTrackKey = currentTrackKey;
+      const previousPlayer = getTrackPlayer(previousTrackKey);
       const nextPlayer = getTrackPlayer(trackKey);
       if (!nextPlayer) return;
 
@@ -439,9 +442,24 @@
           return;
         }
 
-        const started = await playTrack(trackKey, { restart: true });
-        if (!started) {
-          return;
+        primeMusicSource(trackKey);
+        nextPlayer.currentTime = 0;
+        applyMusicSettings(nextPlayer, { volume: MUSIC_VOLUME });
+
+        try {
+          await nextPlayer.play();
+          currentTrackKey = trackKey;
+          pauseInactiveTracks(trackKey, { reset: true });
+          updateMusicToggle(true);
+        } catch (err) {
+          pausePlayer(nextPlayer, { reset: true });
+
+          if (previousPlayer?.paused) {
+            await playTrack(previousTrackKey);
+          } else {
+            currentTrackKey = previousTrackKey;
+            updateMusicToggle(true);
+          }
         }
       } finally {
         switchInFlight = false;
@@ -452,7 +470,7 @@
       if (!musicSwitchSection) return;
 
       const passedSectionAnchor =
-        window.scrollY + window.innerHeight * 0.42 >= musicSwitchSection.offsetTop;
+        window.scrollY + window.innerHeight * 0.88 >= musicSwitchSection.offsetTop;
       const nextTrackKey = passedSectionAnchor ? 'section' : 'default';
 
       if (nextTrackKey !== currentTrackKey) {
@@ -553,9 +571,8 @@
     });
 
     musicToggle?.addEventListener('pointerdown', (event) => {
-      if (!musicWidget || event.button !== 0 || event.pointerType === 'touch' || event.pointerType === 'pen') return;
-
-      event.preventDefault();
+      if (!musicWidget || event.isPrimary === false) return;
+      if (event.pointerType === 'mouse' && event.button !== 0) return;
 
       const startX = event.clientX;
       const startY = event.clientY;
@@ -578,6 +595,10 @@
 
         if (!dragging) return;
 
+        if (moveEvent.cancelable) {
+          moveEvent.preventDefault();
+        }
+
         setMusicWidgetPosition(startLeft + deltaX, startTop + deltaY);
       };
 
@@ -595,7 +616,7 @@
       };
 
       musicToggle.setPointerCapture?.(event.pointerId);
-      window.addEventListener('pointermove', onPointerMove);
+      window.addEventListener('pointermove', onPointerMove, { passive: false });
       window.addEventListener('pointerup', onPointerUp);
       window.addEventListener('pointercancel', onPointerUp);
     });
