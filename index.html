@@ -453,12 +453,14 @@
           updateMusicToggle(true);
         } catch (err) {
           pausePlayer(nextPlayer, { reset: true });
+          if (previousPlayer && !previousPlayer.paused) {
+            pausePlayer(previousPlayer);
+          }
 
-          if (previousPlayer?.paused) {
-            await playTrack(previousTrackKey);
-          } else {
+          const fallbackStarted = await playTrack(trackKey, { restart: true });
+          if (!fallbackStarted) {
             currentTrackKey = previousTrackKey;
-            updateMusicToggle(true);
+            await playTrack(previousTrackKey);
           }
         }
       } finally {
